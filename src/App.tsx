@@ -1,6 +1,220 @@
-import {useEffect,useMemo,useState} from 'react';
-import {AlertTriangle,Check,ChevronDown,Download,FileCode2,Info,Layers3,Plus,Search,ShieldCheck,Sparkles,Upload, X} from 'lucide-react';
-type Dep={id:number;name:string;version:string;license:string;source:string;status:'ok'|'warn'|'risk';note:string};
-const initial:Dep[]=[{id:1,name:'react',version:'18.3.1',license:'MIT',source:'npm',status:'ok',note:'宽松许可，可商用'}, {id:2,name:'lodash',version:'4.17.21',license:'MIT',source:'npm',status:'ok',note:'宽松许可，可商用'}, {id:3,name:'chart.js',version:'4.4.4',license:'MIT',source:'npm',status:'ok',note:'宽松许可，可商用'}, {id:4,name:'highlight.js',version:'11.10.0',license:'BSD-3-Clause',source:'npm',status:'warn',note:'再发布需保留版权声明'}, {id:5,name:'legacy-parser',version:'2.1.0',license:'GPL-3.0',source:'手动',status:'risk',note:'可能与闭源分发冲突'}];
-const colors:Record<string,string>={MIT:'#35b995','BSD-3-Clause':'#6d9ee8','GPL-3.0':'#ec8c75','Apache-2.0':'#b18ee4'};
-export default function App(){const [deps,setDeps]=useState<Dep[]>(()=>{try{return JSON.parse(localStorage.getItem('license-lens')||'')||initial}catch{return initial}});const [query,setQuery]=useState('');const [filter,setFilter]=useState('全部');const [selected,setSelected]=useState(1);const [showAdd,setShowAdd]=useState(false);const [name,setName]=useState('');const [license,setLicense]=useState('MIT');const current=deps.find(d=>d.id===selected);useEffect(()=>localStorage.setItem('license-lens',JSON.stringify(deps)),[deps]);const filtered=useMemo(()=>deps.filter(d=>(filter==='全部'||d.status===filter)&&`${d.name}${d.license}`.toLowerCase().includes(query.toLowerCase())),[deps,filter,query]);const add=()=>{if(!name.trim())return;const id=Date.now();setDeps(ds=>[...ds,{id,name:name.trim(),version:'1.0.0',license,source:'手动',status:license.startsWith('GPL')?'risk':license==='MIT'?'ok':'warn',note:license==='MIT'?'宽松许可，可商用':'请核对分发义务'}]);setSelected(id);setName('');setShowAdd(false)};const exportMd=()=>{const text=`# License Lens\n\n| 依赖 | 版本 | 许可证 | 状态 |\n|---|---|---|---|\n${deps.map(d=>`| ${d.name} | ${d.version} | ${d.license} | ${d.status} |`).join('\n')}`;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/markdown'}));a.download='license-report.md';a.click();URL.revokeObjectURL(a.href)};return <div className="shell"><aside><div className="brand"><div className="brand-icon"><ShieldCheck size={18}/></div><div><b>License Lens</b><small>dependency clarity</small></div></div><div className="nav-title">WORKSPACE</div><button className="nav active"><Layers3 size={16}/>依赖总览</button><button className="nav"><FileCode2 size={16}/>许可证清单 <span>{deps.length}</span></button><button className="nav"><AlertTriangle size={16}/>待处理风险 <span className="red">{deps.filter(d=>d.status==='risk').length}</span></button><div className="aside-bottom"><div className="mini-card"><Sparkles size={16}/><div><b>扫描已更新</b><small>刚刚完成 5 个依赖的分析</small></div></div><div className="user"><div className="avatar">ZL</div><span>Zen Li</span><ChevronDown size={14}/></div></div></aside><main><header><div><div className="crumb">WORKSPACE / <b>PROJECT SCAN</b></div><h1>许可证兼容性分析</h1><p>检查依赖许可，放心发布你的项目。</p></div><div className="head-actions"><button className="outline" onClick={exportMd}><Download size={15}/>导出报告</button><button className="primary" onClick={()=>setShowAdd(true)}><Plus size={16}/>添加依赖</button></div></header><section className="hero"><div><span className="tag">PROJECT · AURORA-WEB</span><h2>发布前，再确认一次。</h2><p>我们扫描了 <b>{deps.length} 个依赖</b>，发现 <b className="warning">{deps.filter(d=>d.status!=='ok').length} 个项目</b>需要你的关注。</p></div><div className="scan-score"><div className="score-ring"><strong>{Math.round(deps.filter(d=>d.status==='ok').length/deps.length*100)}<small>%</small></strong></div><div><span>兼容评分</span><b>良好</b><small>上次扫描 2 分钟前</small></div></div></section><section className="summary"><div><span>全部依赖</span><b>{deps.length}</b><small>+2 本次新增</small></div><div><span>安全许可</span><b className="teal">{deps.filter(d=>d.status==='ok').length}</b><small>可直接分发</small></div><div><span>需要复核</span><b className="orange">{deps.filter(d=>d.status==='warn').length}</b><small>保留声明即可</small></div><div><span>高风险</span><b className="red">{deps.filter(d=>d.status==='risk').length}</b><small>建议替换或隔离</small></div></section><section className="workspace"><div className="table-pane"><div className="pane-head"><div><h2>依赖清单</h2><p>逐项查看许可证义务</p></div><div className="tools"><div className="search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="搜索依赖"/></div><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="全部">全部状态</option><option value="ok">安全</option><option value="warn">复核</option><option value="risk">高风险</option></select></div></div><div className="table"><div className="tr th"><span>依赖名称</span><span>版本</span><span>许可证</span><span>状态</span></div>{filtered.map(d=><button className={d.id===selected?'tr selected':'tr'} key={d.id} onClick={()=>setSelected(d.id)}><span className="dep-name"><span className="pkg-dot"/> {d.name}</span><span className="muted">{d.version}</span><span><i className="license" style={{color:colors[d.license]||'#888',background:(colors[d.license]||'#888')+'18'}}>{d.license}</i></span><span className={'status '+d.status}>{d.status==='ok'?<Check size={13}/>:<AlertTriangle size={13}/>} {d.status==='ok'?'安全':d.status==='warn'?'复核':'高风险'}</span></button>)}</div></div>{current&&<div className="detail"><div className="detail-head"><div className="detail-icon" style={{background:(colors[current.license]||'#888')+'1c',color:colors[current.license]}}><FileCode2 size={20}/></div><div><span>SELECTED DEPENDENCY</span><h2>{current.name}</h2></div><button className="close" onClick={()=>setSelected(0)}><X size={16}/></button></div><div className="detail-grid"><div><label>版本</label><b>{current.version}</b></div><div><label>来源</label><b>{current.source}</b></div><div><label>许可证</label><b>{current.license}</b></div></div><div className={'finding '+current.status}><div className="finding-icon">{current.status==='ok'?<Check size={16}/>:<AlertTriangle size={16}/>}</div><div><b>{current.status==='ok'?'可以放心使用':current.status==='warn'?'需要保留声明':'存在分发限制'}</b><p>{current.note}。扫描结果基于 package 元数据，请在发布前查看完整许可证文本。</p></div></div><div className="full-license"><div><Info size={15}/><span>许可证摘要</span></div><p>{current.license} 允许在满足其条款的前提下使用和分发代码。详细义务请参考项目仓库中的 LICENSE 文件。</p><button>查看原文 <ChevronDown size={14}/></button></div></div>}</section></main>{showAdd&&<div className="backdrop" onClick={()=>setShowAdd(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><h2>添加依赖</h2><button onClick={()=>setShowAdd(false)}>×</button></div><label>依赖名称<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="例如 date-fns"/></label><label>许可证<select value={license} onChange={e=>setLicense(e.target.value)}><option>MIT</option><option>BSD-3-Clause</option><option>Apache-2.0</option><option>GPL-3.0</option></select></label><button className="primary full" onClick={add}>加入扫描</button></div></div>}</div>}
+import {useEffect, useMemo, useState} from 'react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  FileCode2,
+  Layers3,
+  Plus,
+  RotateCcw,
+  ScrollText,
+  ShieldCheck,
+  Sparkles,
+  Download,
+} from 'lucide-react';
+import {
+  AppState,
+  IntakeInput,
+  closeTicket,
+  draftReasons,
+  intakeAdvisory,
+  addDependency,
+  markReleasable,
+  releaseVerdict,
+  updateTicket,
+  upgradeDependency,
+} from './domain/rules';
+import {loadState, resetState, saveState} from './storage/store';
+import Overview from './components/Overview';
+import Advisories from './components/Advisories';
+import Records from './components/Records';
+import {AddDepModal, IntakeModal} from './components/modals';
+
+type View = 'overview' | 'advisories' | 'records';
+
+export default function App() {
+  // 存储层只在初始化/变更时接触；判定全部由 domain 纯函数派生。
+  const [state, setState] = useState<AppState>(() => loadState());
+  const [view, setView] = useState<View>('overview');
+  const [selectedTicket, setSelectedTicket] = useState(0);
+  const [showAddDep, setShowAddDep] = useState(false);
+  const [showIntake, setShowIntake] = useState(false);
+
+  useEffect(() => saveState(state), [state]);
+
+  const counts = useMemo(() => {
+    let draft = 0;
+    let highActive = 0;
+    for (const t of state.tickets) {
+      if (t.lifecycle !== 'active') continue;
+      if (draftReasons(state, t).length > 0) draft++;
+      if (t.severity === 'high' || t.severity === 'critical') highActive++;
+    }
+    return {
+      blocked: state.deps.filter((d) => releaseVerdict(state, d).verdict === 'blocked').length,
+      draft,
+      highActive,
+    };
+  }, [state]);
+
+  const openTicket = (id: number) => {
+    setSelectedTicket(id);
+    setView('advisories');
+  };
+
+  const handleIntake = (input: IntakeInput): string | null => {
+    const r = intakeAdvisory(state, input);
+    if (!r.ok) return r.error!;
+    setState(r.state);
+    const ticket = r.state.tickets[r.state.tickets.length - 1];
+    setSelectedTicket(ticket?.id ?? 0);
+    setView('advisories');
+    setShowIntake(false);
+    return null;
+  };
+
+  const handleAddDep = (v: {name: string; version: string; license: string; source: string; note: string}) => {
+    const r = addDependency(state, v);
+    if (!r.ok) {
+      alert(r.error);
+      return;
+    }
+    setState(r.state);
+    setShowAddDep(false);
+  };
+
+  const exportMd = () => {
+    const lines: string[] = ['# 依赖安全公告处置报告', ''];
+    for (const d of state.deps) {
+      const {verdict, blockers} = releaseVerdict(state, d);
+      lines.push(`## ${d.name}@${d.version}（${d.license}）`);
+      lines.push(
+        `- 发布结论：${verdict === 'blocked' ? '发布受阻' : verdict === 'releasable' ? '可发布（已标记）' : '无阻断（未标记）'}`,
+      );
+      for (const b of blockers) {
+        lines.push(`- 阻断：票据 #${b.ticketId} ${b.advisoryIds.join('/')}（${b.severity}）区间 ${b.mergedRangeText}`);
+        lines.push(`  - ${b.rule}`);
+        lines.push(
+          `  - 原值：depVersion=${b.original.depVersion}，affectedRange=${b.original.affectedRange}，fixedVersion=${b.original.fixedVersion ?? 'null'}，owner=${b.original.owner || '空'}`,
+        );
+      }
+      lines.push('');
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type: 'text/markdown'}));
+    a.download = 'security-advisory-report.md';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  return (
+    <div className="shell">
+      <aside>
+        <div className="brand">
+          <div className="brand-icon">
+            <ShieldCheck size={18} />
+          </div>
+          <div>
+            <b>License Lens</b>
+            <small>SECURITY ADVISORY DESK</small>
+          </div>
+        </div>
+        <div className="nav-title">WORKSPACE</div>
+        <button className={`nav ${view === 'overview' ? 'active' : ''}`} onClick={() => setView('overview')}>
+          <Layers3 size={16} />
+          依赖发布判定
+          <span>{state.deps.length}</span>
+        </button>
+        <button className={`nav ${view === 'advisories' ? 'active' : ''}`} onClick={() => setView('advisories')}>
+          <AlertTriangle size={16} />
+          安全公告处置
+          <span className={counts.draft > 0 ? 'amber' : ''}>{counts.highActive}</span>
+        </button>
+        <button className={`nav ${view === 'records' ? 'active' : ''}`} onClick={() => setView('records')}>
+          <ScrollText size={16} />
+          处置记录
+          <span>{state.records.length}</span>
+        </button>
+        <button className="nav" onClick={() => setShowAddDep(true)}>
+          <Plus size={16} />
+          添加依赖
+        </button>
+
+        <div className="aside-bottom">
+          <div className="mini-card">
+            <Sparkles size={16} />
+            <div>
+              <b>结论实时派生</b>
+              <small>公告 / 依赖结论 / 处置记录同源，刷新一致</small>
+            </div>
+          </div>
+          <button
+            className="nav reset-nav"
+            onClick={() => {
+              if (confirm('重置为示例数据？当前修改将被清除。')) setState(resetState());
+            }}
+          >
+            <RotateCcw size={14} /> 重置示例数据
+          </button>
+          <div className="user">
+            <div className="avatar">ZL</div>
+            <span>Zen Li</span>
+            <ChevronDown size={14} />
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header>
+          <div>
+            <div className="crumb">
+              WORKSPACE / <b>SECURITY ADVISORY DESK</b>
+            </div>
+            <h1>依赖安全公告处置台</h1>
+            <p>录入公告并跟踪修复，未关闭的高危公告会守住发布闸门。</p>
+          </div>
+          <div className="head-actions">
+            <button className="outline" onClick={exportMd}>
+              <Download size={15} />
+              导出报告
+            </button>
+            <button className="primary" onClick={() => setShowIntake(true)}>
+              <AlertTriangle size={15} />
+              录入公告
+            </button>
+          </div>
+        </header>
+
+        {view === 'overview' && (
+          <Overview
+            state={state}
+            onMark={(id) => setState(markReleasable(state, id))}
+            onUpgrade={(id, v) => {
+              const dep = state.deps.find((d) => d.id === id);
+              if (!dep) return '依赖不存在';
+              if (v === dep.version) return '新版本与当前版本相同';
+              setState(upgradeDependency(state, id, v));
+              return null;
+            }}
+            onSelectTicket={openTicket}
+            onAddDep={() => setShowAddDep(true)}
+          />
+        )}
+        {view === 'advisories' && (
+          <Advisories
+            state={state}
+            selectedId={selectedTicket}
+            onSelect={setSelectedTicket}
+            onAssign={(id, patch) => setState(updateTicket(state, id, patch))}
+            onClose={(id, note) => setState(closeTicket(state, id, note))}
+          />
+        )}
+        {view === 'records' && <Records state={state} />}
+      </main>
+
+      {showAddDep && <AddDepModal onClose={() => setShowAddDep(false)} onSubmit={handleAddDep} />}
+      {showIntake && (
+        <IntakeModal state={state} onClose={() => setShowIntake(false)} onSubmit={handleIntake} />
+      )}
+    </div>
+  );
+}

@@ -1,1 +1,26 @@
-{"name":"ccdata-yf-05-license-lens","private":true,"version":"1.0.0","type":"module","scripts":{"dev":"vite","build":"tsc -b && vite build","preview":"vite preview"},"dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},"devDependencies":{"@types/react":"latest","@types/react-dom":"latest"}}
+{
+  "name": "ccdata-yf-05-license-lens",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "check:rules": "esbuild scripts/check-domain.mts --bundle --platform=node --format=esm --outfile=node_modules/.tmp/check-domain.mjs && node node_modules/.tmp/check-domain.mjs",
+    "check:ui": "esbuild scripts/ssr-smoke.tsx --bundle --platform=node --format=cjs --outfile=node_modules/.tmp/ssr-smoke.cjs --jsx=automatic && node node_modules/.tmp/ssr-smoke.cjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "esbuild": "latest"
+  }
+}
